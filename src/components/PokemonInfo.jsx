@@ -1,10 +1,21 @@
 import { Component } from 'react';
+import PokemonErrorView from './PokemonErrorView';
+import PokemonDataView from './PokemonDataView';
+import PokemonPendingView from './PokemonPendingView';
+import pokemonAPI from 'components/services/pokemon-api';
+
+const Status = {
+  IDLE: 'idle',
+  PENDING: 'pending',
+  RESOLVED: 'resolved',
+  REJECTED: 'rejected',
+};
 
 export default class PokemonInfo extends Component {
   state = {
-    pokemon: '',
-    loading: false,
+    pokemon: null,
     error: null,
+    status: Status.IDLE,
   };
 
   componentDidUpdate(prevProps, prevState) {
@@ -12,46 +23,35 @@ export default class PokemonInfo extends Component {
     const nextName = this.props.pokemonName;
 
     if (prevName !== nextName) {
-      this.setState({ loading: true, pokemon: null });
+      this.setState({ status: Status.PENDING });
 
       setTimeout(() => {
-        fetch(`https://pokeapi.co/api/v2/pokemon/${nextName}`)
-          .then(response => {
-            if (response.ok) {
-              return response.json();
-            }
-
-            return Promise.reject(
-              new Error(`No pokemon this is name ${nextName}`)
-            );
-          })
-          .then(pokemon => this.setState({ pokemon }))
-          .catch(error => this.setState({ error }))
-          .finally(() => this.setState({ loading: false }));
-      }, 1000);
+        pokemonAPI
+          .fetchPokemon(nextName)
+          .then(pokemon => this.setState({ pokemon, status: Status.RESOLVED }))
+          .catch(error => this.setState({ error, status: Status.REJECTED }));
+      }, 3000);
     }
   }
 
   render() {
-    const { pokemon, loading, error } = this.state;
+    const { pokemon, error, status } = this.state;
     const { pokemonName } = this.props;
 
-    return (
-      <div>
-        {error && <h1>{error.message}</h1>}
-        {loading && <div>Downloads...</div>}
-        {!pokemonName && <div>input name pokemon</div>}
-        {pokemon && (
-          <div>
-            <p>{pokemon.name}</p>
-            <img
-              src={pokemon.sprites.other['official-artwork'].front_default}
-              alt={pokemon.name}
-              width="200"
-            />
-          </div>
-        )}
-      </div>
-    );
+    if (status === 'idle') {
+      return <div>input name pokemon</div>;
+    }
+
+    if (status === 'pending') {
+      return <PokemonPendingView pokemonName={pokemonName} />;
+    }
+
+    if (status === 'rejected') {
+      return <PokemonErrorView message={error.message} />;
+    }
+
+    if (status === 'resolved') {
+      return <PokemonDataView pokemon={pokemon} />;
+    }
   }
 }
