@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import 'react-toastify/dist/ReactToastify.css';
-import { App } from 'components/App';
+import App from 'components/App';
 import { ThemeProvider } from 'styled-components';
 import { GlobalStyle } from 'index.styled';
 import { theme } from 'theme';
